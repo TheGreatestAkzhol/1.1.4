@@ -5,6 +5,9 @@ import org.hibernate.SessionFactory;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.service.ServiceRegistry;
+
+import java.io.IOException;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.sql.Connection;
@@ -15,14 +18,32 @@ import java.util.logging.Logger;
 
     public class Util {
         private static final Logger LOGGER = Logger.getLogger(Util.class.getName());
-        private static final String HOST = "jdbc:mysql://localhost:3306/mydbtest";
-        private static final String USERNAME = "root";
-        private static final String PASSWORD = "root";
-
+        private static final String HOST_KEY = "db.url";
+        private static final String USERNAME_KEY = "db.username";
+        private static final String PASSWORD_KEY = "db.password";
+        private static final Properties PROPERTIES = new Properties();
+        private Util(){
+        }
+        static{
+            loadProperties();
+        }
+        public static String get(String key){
+            return PROPERTIES.getProperty(key);
+        }
+        private static void loadProperties(){
+            try (var inputstream = Util.class.getClassLoader().getResourceAsStream("application.properties")) {
+            PROPERTIES.load(inputstream);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
         public static Connection getConnection() {
             Connection connection = null;
             try {
-                connection = DriverManager.getConnection(HOST, USERNAME, PASSWORD);
+                connection = DriverManager.getConnection(
+                        Util.get(HOST_KEY),
+                        Util.get(USERNAME_KEY),
+                        Util.get(PASSWORD_KEY));
                 if (!connection.isClosed()) {
                     LOGGER.log(Level.INFO, "We've connected with database succesfully!)");
                 }
@@ -39,9 +60,9 @@ import java.util.logging.Logger;
         public static SessionFactory getSessionFactory() {
             try {
                 Configuration configuration = new Configuration()
-                        .setProperty("hibernate.connection.url", HOST + "?useSSL=false")
-                        .setProperty("hibernate.connection.username", USERNAME)
-                        .setProperty("hibernate.connection.password",PASSWORD)
+                        .setProperty("hibernate.connection.url", Util.get(HOST_KEY) + "?useSSL=false")
+                        .setProperty("hibernate.connection.username", Util.get(USERNAME_KEY))
+                        .setProperty("hibernate.connection.password",Util.get(PASSWORD_KEY))
                         .setProperty("hibernate.dialect", "org.hibernate.dialect.MySQL5Dialect")
                         .setProperty("hibernate.connection.characterEncoding", "utf8")
                         .setProperty("hibernate.show_sql", "true")
